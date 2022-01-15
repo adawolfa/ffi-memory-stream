@@ -6,6 +6,10 @@ use FFI;
 
 /**
  * FFI memory stream wrapper.
+ *
+ * Format: ffi.memory://<address>;<size>
+ * Address is expected to be a hexadecimal number (big-endian), size must be a positive decimal number.
+ * Example: fopen("ffi.memory://0x80004dfe5;1024", "r")
  */
 final class MemoryStreamWrapper
 {
@@ -15,12 +19,12 @@ final class MemoryStreamWrapper
 	/**
 	 * Pointer to the buffer.
 	 */
-	private FFI\CData $ptr;
+	private readonly FFI\CData $ptr;
 
 	/**
 	 * Buffer size.
 	 */
-	private int $size;
+	private readonly int $size;
 
 	/**
 	 * Current seek position.
@@ -30,7 +34,7 @@ final class MemoryStreamWrapper
 	/**
 	 * Access flags.
 	 */
-	private bool $readable = false, $writable = false;
+	private readonly bool $readable, $writable;
 
 	/**
 	 * Registers the wrapper.
@@ -44,26 +48,27 @@ final class MemoryStreamWrapper
 
 	public function stream_open(string $path, string $mode, int $options): bool
 	{
-		if (!preg_match('~^[^:]*://(?<addr>\d+);(?<size>\d+)$~', $path, $matches)
+		if (!preg_match('~^[^:]*://0x(?<addr>[0-9a-f]{1,' . (PHP_INT_SIZE * 2) . '});(?<size>\d+)$~i', $path, $matches)
 			|| (int) $matches['size'] <= 0
-			|| (int) $matches['addr'] <= 0
 		) {
 			trigger_error(sprintf('Incorrect buffer specification for %s stream wrapper.', self::PROTOCOL), E_USER_WARNING);
 			return false;
 		}
 
+		$readable = $writable = false;
+
 		switch ($mode) {
 
 			case 'r':
-				$this->readable = true;
+				$readable = true;
 				break;
 
 			case 'w':
-				$this->writable = true;
+				$writable = true;
 				break;
 
 			case 'rw':
-				$this->readable = $this->writable = true;
+				$readable = $writable = true;
 				break;
 
 			default:
@@ -72,8 +77,19 @@ final class MemoryStreamWrapper
 
 		}
 
-		$this->ptr  = self::add(FFI::new('void *'), (int) $matches['addr']);
-		$this->size = (int) $matches['size'];
+		$this->ptr      = FFI::new('void *');
+		$this->size     = (int) $matches['size'];
+		$this->readable = $readable;
+		$this->writable = $writable;
+		$ptrSize        = FFI::sizeof($this->ptr);
+		$addrBytes      = FFI::new(FFI::arrayType(FFI::type('unsigned char'), [$ptrSize]));
+		$hexAddr        = str_pad($matches['addr'], $ptrSize * 2, '0', STR_PAD_LEFT);
+
+		foreach (array_reverse(str_split($hexAddr, 2)) as $i => $hByte) {
+			$addrBytes[$i] = hexdec($hByte);
+		}
+
+		FFI::memcpy(FFI::addr($this->ptr), FFI::addr($addrBytes), $ptrSize);
 
 		return true;
 	}

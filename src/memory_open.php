@@ -14,11 +14,14 @@ use FFI;
  */
 function memory_open(FFI\CData $ptr, string $mode, int $size)
 {
-	$spec = sprintf(
-		'ffi.memory://%d;%d',
-		FFI::cast(PHP_INT_SIZE === 8 ? 'unsigned long long' : 'unsigned int', $ptr)->cdata,
-		$size,
-	);
+	$ptrSize  = FFI::type('void *')->getSize();
+	$ptrBytes = FFI::new(FFI::arrayType(FFI::type('unsigned char'), [$ptrSize]));
+	FFI::memcpy(FFI::addr($ptrBytes), FFI::addr($ptr), $ptrSize);
 
+	for ($addr = '0x', $i = $ptrSize - 1; $i >= 0; $i--) {
+		$addr .= str_pad(dechex($ptrBytes[$i]), 2, '0', STR_PAD_LEFT);
+	}
+
+	$spec = sprintf('%s://%s;%d', MemoryStreamWrapper::PROTOCOL, $addr, $size);
 	return fopen($spec, $mode);
 }

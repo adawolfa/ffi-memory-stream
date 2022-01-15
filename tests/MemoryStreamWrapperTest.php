@@ -6,6 +6,7 @@ use PHPUnit\Framework\TestCase;
 use FFI;
 use function Adawolfa\MemoryStream\memory_open;
 use TypeError;
+use ReflectionObject;
 
 final class MemoryStreamWrapperTest extends TestCase
 {
@@ -17,11 +18,74 @@ final class MemoryStreamWrapperTest extends TestCase
 		$this->assertTrue(is_resource($stream));
 	}
 
+	public function testOpenLongAddress(): void
+	{
+		if (PHP_INT_SIZE === 8) {
+			$stream = fopen('ffi.memory://0x8000000000000538;10', 'r');
+		} else {
+			$stream = fopen('ffi.memory://0x80000539;10', 'r');
+		}
+
+		$this->assertTrue(is_resource($stream));
+
+		if (PHP_INT_SIZE === 8) {
+			$this->assertSame([0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x38], self::getStreamAddress($stream));
+		} else {
+			$this->assertSame([0x80, 0x00, 0x05, 0x39], self::getStreamAddress($stream));
+		}
+
+		$ptr = FFI::new('void *');
+
+		if (PHP_INT_SIZE === 8) {
+			FFI::memcpy(FFI::addr($ptr), "\x38\x05\x00\x00\x00\x00\x00\x80", 8);
+		} else {
+			FFI::memcpy(FFI::addr($ptr), "\x39\x05\x00\x80", 4);
+		}
+
+		$stream = memory_open($ptr, 'r', 10);
+		$this->assertTrue(is_resource($stream));
+
+		if (PHP_INT_SIZE === 8) {
+			$this->assertSame([0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x38], self::getStreamAddress($stream));
+		} else {
+			$this->assertSame([0x80, 0x00, 0x05, 0x39], self::getStreamAddress($stream));
+		}
+	}
+
+	/**
+	 * Returns address of the wrapper's pointer (big-endian).
+	 */
+	private function getStreamAddress(mixed $stream): array
+	{
+		$wrapper = stream_get_meta_data($stream)['wrapper_data'];
+		$reflection    = new ReflectionObject($wrapper);
+		$ptrReflection = $reflection->getProperty('ptr');
+		$ptrReflection->setAccessible(true);
+		$copyPtr = $ptrReflection->getValue($wrapper);
+
+		$addrBytes = FFI::new(FFI::arrayType(FFI::type('unsigned char'), [PHP_INT_SIZE]));
+		FFI::memcpy(FFI::addr($addrBytes), FFI::addr($copyPtr), PHP_INT_SIZE);
+
+		$address = [];
+
+		for ($i = 0; $i < PHP_INT_SIZE; $i++) {
+			$address[] = $addrBytes[$i];
+		}
+
+		return array_reverse($address);
+	}
+
 	public function testOpenError(): void
 	{
 		$this->assertFalse(@fopen('ffi.memory://abc', 'r'));
-		$this->assertFalse(@fopen('ffi.memory://123;0', 'r'));
-		$this->assertFalse(@fopen('ffi.memory://123;0', 'a+'));
+		$this->assertFalse(@fopen('ffi.memory://0x123;0', 'r'));
+		$this->assertFalse(@fopen('ffi.memory://0x123;1', 'a+'));
+
+		if (PHP_INT_SIZE === 8) {
+			$this->assertFalse(@fopen('ffi.memory://0x10000000000000001;1', 'r'));
+		} else {
+			$this->assertFalse(@fopen('ffi.memory://0x100000001;1', 'r'));
+		}
 	}
 
 	public function testRead(): void

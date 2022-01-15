@@ -21,3 +21,5 @@ $data   = fread($stream, 10);
 You can make the stream read-only (`r`), write-only (`w`) or unrestricted (`rw`). The wrapper ensures that the user operates within the stream boundaries thanks to the `$size` argument, which is mandatory.
 
 You, as a callee, should `fclose()` the stream explicitly once the pointer becomes invalid. Reading from or writing into such stream emits a warning, but unlike accessing the data via an invalid pointer, doesn't cause the process to crash, making it much easier for caller to debug.
+
+Both 32-bit and 64-bit platforms are supported, little-endian is assumed.
