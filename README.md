@@ -15,7 +15,7 @@ There's a `memory_open()` function, which creates a stream to the data from FFI 
 ~~~php
 $ptr    = $ffi->get_buffer($size);
 $stream = Adawolfa\MemoryStream\memory_open($ptr, 'r', $size);
-$data   = fread($ptr, 10);
+$data   = fread($stream, 10);
 ~~~
 
 You can make the stream read-only (`r`), write-only (`w`) or unrestricted (`rw`). The wrapper ensures that the user operates within the stream boundaries thanks to the `$size` argument, which is mandatory.
