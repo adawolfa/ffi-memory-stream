@@ -1,0 +1,34 @@
+{
+	"name": "adawolfa/ffi-memory-stream",
+	"type": "library",
+	"description": "FFI memory stream wrapper.",
+	"license": ["MIT"],
+	"authors": [
+		{
+			"name": "Adam Klvač",
+			"homepage": "https://klva.cz",
+			"email": "adam@klva.cz"
+		}
+	],
+	"require": {
+		"php": ">=8.1",
+		"ext-ffi": "*"
+	},
+	"require-dev": {
+		"phpunit/phpunit": "^9.5"
+	},
+	"autoload": {
+		"files": ["src/loader.php"]
+	},
+	"scripts": {
+		"build": "docker build -t memory_stream .",
+		"test": "phpunit tests/",
+		"test-win32": "docker run --rm -v %CD%:/mnt/_ -w /mnt/_ memory_stream vendor/bin/phpunit tests/",
+		"test-linux": "docker run --rm -v $PWD:/mnt/_ -w /mnt/_ memory_stream vendor/bin/phpunit tests/"
+	},
+	"extra": {
+		"branch-alias": {
+			"dev-master": "1.x-dev"
+		}
+	}
+}
