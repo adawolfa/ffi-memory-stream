@@ -14,7 +14,7 @@ There's a `memory_open()` function, which creates a stream to the data from FFI 
 
 ~~~php
 $ptr    = $ffi->get_buffer($size);
-$stream = memory_open($ptr, 'r', $size);
+$stream = Adawolfa\MemoryStream\memory_open($ptr, 'r', $size);
 $data   = fread($ptr, 10);
 ~~~
 
