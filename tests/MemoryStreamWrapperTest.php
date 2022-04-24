@@ -78,7 +78,6 @@ final class MemoryStreamWrapperTest extends TestCase
 	public function testOpenError(): void
 	{
 		$this->assertFalse(@fopen('ffi.memory://abc', 'r'));
-		$this->assertFalse(@fopen('ffi.memory://0x123;0', 'r'));
 		$this->assertFalse(@fopen('ffi.memory://0x123;1', 'a+'));
 
 		if (PHP_INT_SIZE === 8) {
@@ -190,6 +189,16 @@ final class MemoryStreamWrapperTest extends TestCase
 		$stream = memory_open(FFI::addr($data), 'r', 10);
 		fclose($stream);
 		$this->assertFalse(@fread($stream, 10));
+	}
+
+	public function testReadZeroSize(): void
+	{
+		$data = FFI::new('char[1]');
+
+		$stream = memory_open(FFI::addr($data), 'r', 0);
+
+		$this->assertTrue(feof($stream));
+		$this->assertSame('', fread($stream, 1));
 	}
 
 }

@@ -49,7 +49,7 @@ final class MemoryStreamWrapper
 	public function stream_open(string $path, string $mode, int $options): bool
 	{
 		if (!preg_match('~^[^:]*://0x(?<addr>[0-9a-f]{1,' . (PHP_INT_SIZE * 2) . '});(?<size>\d+)$~i', $path, $matches)
-			|| (int) $matches['size'] <= 0
+			|| (int) $matches['size'] < 0
 		) {
 			trigger_error(sprintf('Incorrect buffer specification for %s stream wrapper.', self::PROTOCOL), E_USER_WARNING);
 			return false;
