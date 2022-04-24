@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 namespace Adawolfa\MemoryStream;
+use Closure;
 use FFI;
 
 /**
@@ -35,6 +36,11 @@ final class MemoryStreamWrapper
 	 * Access flags.
 	 */
 	private readonly bool $readable, $writable;
+
+	/**
+	 * Destruct listener.
+	 */
+	public ?Closure $destruct = null;
 
 	/**
 	 * Registers the wrapper.
@@ -163,6 +169,13 @@ final class MemoryStreamWrapper
 	public function stream_set_option(int $option, int $arg1, int $arg2): bool
 	{
 		return false;
+	}
+
+	public function __destruct()
+	{
+		if ($this->destruct !== null) {
+			call_user_func($this->destruct);
+		}
 	}
 
 	private static function add(FFI\CData $ptr, int $offset): FFI\CData

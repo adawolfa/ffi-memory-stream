@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 namespace Tests\Adawolfa\MemoryStream;
+use Adawolfa\MemoryStream\MemoryStreamWrapper;
 use PHPUnit\Framework\TestCase;
 use FFI;
 use function Adawolfa\MemoryStream\memory_open;
@@ -199,6 +200,27 @@ final class MemoryStreamWrapperTest extends TestCase
 
 		$this->assertTrue(feof($stream));
 		$this->assertSame('', fread($stream, 1));
+	}
+
+	public function testDestruct(): void
+	{
+		$result = [];
+
+		(function() use(&$result): void {
+
+			$data   = FFI::new('char[1]');
+			$stream = memory_open(FFI::addr($data), 'r', 0);
+			$wrapper = stream_get_meta_data($stream)['wrapper_data'];
+			assert($wrapper instanceof MemoryStreamWrapper);
+			$wrapper->destruct = static function() use(&$result): void {
+				$result[] = 1;
+			};
+
+			$result[] = 0;
+
+		})();
+
+		$this->assertSame([0, 1], $result);
 	}
 
 }
