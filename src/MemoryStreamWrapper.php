@@ -42,6 +42,11 @@ final class MemoryStreamWrapper
 	 */
 	public ?Closure $destruct = null;
 
+    /**
+     * Wrapper context.
+     */
+    public mixed $context;
+
 	/**
 	 * Registers the wrapper.
 	 */
